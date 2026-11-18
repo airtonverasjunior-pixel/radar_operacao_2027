@@ -1,0 +1,43 @@
+name: Radar Operacao Julho 2027
+
+on:
+  schedule:
+    # 10:00 e 22:00 UTC = 07:00 e 19:00 BRT (São Luís)
+    - cron: "0 10,22 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  monitorar-voos:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependências
+        run: pip install requests
+
+      - name: Executar varredura do radar
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SEATS_AERO_API_KEY: ${{ secrets.SEATS_AERO_API_KEY }}
+          APIFY_API_TOKEN: ${{ secrets.APIFY_API_TOKEN }}
+          APIFY_ACTOR_ID: ${{ secrets.APIFY_ACTOR_ID }}
+        run: python radar_operacao_2027.py
+
+      - name: Salvar estado atualizado (radar_state.json)
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add radar_state.json
+          git diff --staged --quiet || git commit -m "chore: atualiza estado do radar [skip ci]"
+          git push
